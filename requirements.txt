@@ -1,0 +1,8 @@
+pillow
+numpy
+pandas
+matplotlib
+scikit-learn
+scikit-image
+jupyter
+tqdm
