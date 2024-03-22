@@ -1,4 +1,109 @@
+import os
+import numpy as np
+from tqdm import tqdm
+from PIL import Image
+from itertools import product
+
+from src.edge_detection import detect_mask_edges
+from src.augmentation import augment_image
+from src.utils import parse_number_string
+from src.segmentation import label_image as separate_mask_image, load_image
 
 
 if __name__ == "__main__":
-    print("Hello, World!")
+    IMAGE_SIZE = (256, 256)
+
+    tiles_dir = "data/bronze/tiles"
+    masks_dir = "data/bronze/masks"
+
+    tile_paths = sorted(os.listdir(tiles_dir))
+    mask_paths = sorted(os.listdir(masks_dir))
+
+    print("\nLoading images...")
+    tile_image_arrays = [load_image(tiles_dir, tile_path)
+                         for tile_path in tqdm(tile_paths, desc="Tiles")]
+    mask_image_arrays = [load_image(masks_dir, mask_path)
+                         for mask_path in tqdm(mask_paths, desc="Masks")]
+
+    print("\nSeparating mask images...")
+    separated_mask_images = []
+
+    os.makedirs("data/silver/masks", exist_ok=True)
+    for mask_path, mask_image in tqdm(list(zip(mask_paths, mask_image_arrays))):
+        idx = parse_number_string(mask_path)
+        image_path = f"data/silver/masks/{idx}.png"
+
+        if os.path.exists(image_path):
+            separated_mask_images.append(
+                Image.open(image_path).convert("L"))
+            continue
+
+        mask_image_separated = separate_mask_image(mask_image).astype(np.uint8)
+        mask_image_separated = Image.fromarray(mask_image_separated)
+
+        separated_mask_images.append(mask_image_separated)
+        mask_image_separated.save(image_path)
+
+    print("\nMaking sub-tiles...")
+    os.makedirs("data/gold/tiles", exist_ok=True)
+    os.makedirs("data/gold/masks", exist_ok=True)
+
+    for idx in tqdm(range(len(tile_image_arrays)), desc="Sub-tiles"):
+        tile_image = Image.fromarray(tile_image_arrays[idx][:, :, [3, 1, 2]])
+        mask_image = separated_mask_images[idx]
+
+        zoom_factors = [1, .25, .5, .75]
+        rotate_angles = [0, 90, 180, 270]
+        flip_horizontal = [False, True]
+        flip_vertical = [False, True]
+
+        for zoom, rotation, flip_horizontal, flip_vertical in product(
+                zoom_factors, rotate_angles, flip_horizontal, flip_vertical):
+
+            tile_image_augmented = augment_image(
+                tile_image, IMAGE_SIZE,
+                zoom=zoom,
+                rotation=rotation,
+                flip_horizontal=flip_horizontal,
+                flip_vertical=flip_vertical
+            )
+            mask_image_augmented = augment_image(
+                mask_image, IMAGE_SIZE,
+                zoom=zoom,
+                rotation=rotation,
+                flip_horizontal=flip_horizontal,
+                flip_vertical=flip_vertical
+            )
+
+            image_name = f"{idx}__{zoom}_{rotation}_{flip_horizontal}_{flip_vertical}.jpg"
+
+            tile_image_augmented.save(f"data/gold/tiles/{image_name}")
+            mask_image_augmented.save(f"data/gold/masks/{image_name}")
+
+    print("Making bounding boxes...")
+    os.makedirs("data/gold/bbox", exist_ok=True)
+
+    for img_name in tqdm(os.listdir("data/gold/masks"), desc="Bounding boxes"):
+        mask_image = load_image("data/gold/masks", img_name)
+
+        bbox_text = ""
+        for value in np.unique(mask_image):
+            if value == 0:
+                continue
+
+            mask = mask_image == value
+            mask = np.array(mask).astype(np.uint8) * 255
+
+            mask_edges = detect_mask_edges(mask)
+            mask_edges = Image.fromarray(mask_edges)
+
+            x, y = np.where(mask_edges)
+            x = x.astype(str)
+            y = y.astype(str)
+
+            bbox_text += "0 " + \
+                " ".join([" ".join(pair) for pair in zip(x, y)]) + "\n"
+
+        bbox_file = img_name.replace(".jpg", ".txt")
+        with open(f"data/gold/bbox/{bbox_file}", "w+") as f:
+            f.write(bbox_text)
