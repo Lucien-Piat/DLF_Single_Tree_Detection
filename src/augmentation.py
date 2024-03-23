@@ -40,7 +40,8 @@ def augment_rotate(image, rotation=0):
     Rotate an image by a given angle.
     """
 
-    image = image.rotate(rotation, resample=Image.BICUBIC)
+    image = image.rotate(rotation, resample=Image.BICUBIC,
+                         fillcolor=(0, 0, 0), expand=True)
 
     return image
 
