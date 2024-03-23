@@ -120,8 +120,8 @@ if __name__ == "__main__":
         contents = (
             f"""
 path: {os.getcwd()}/data/gold
-train: /train
-val: /valid
+train: ./train
+val: ./valid
 
 names:
   0: tree
