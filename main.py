@@ -4,7 +4,7 @@ from tqdm import tqdm
 from PIL import Image
 from itertools import product
 
-from src.edge_detection import detect_mask_edges
+from src.edge_detection import get_yolo_items
 from src.augmentation import augment_image
 from src.utils import parse_number_string
 from src.segmentation import label_image as separate_mask_image, load_image
@@ -80,30 +80,14 @@ if __name__ == "__main__":
             tile_image_augmented.save(f"data/gold/tiles/{image_name}")
             mask_image_augmented.save(f"data/gold/masks/{image_name}")
 
-    print("Making bounding boxes...")
-    os.makedirs("data/gold/bbox", exist_ok=True)
+    print("\nMaking bounding boxes...")
+    os.makedirs("data/gold/segmentations", exist_ok=True)
 
     for img_name in tqdm(os.listdir("data/gold/masks"), desc="Bounding boxes"):
         mask_image = load_image("data/gold/masks", img_name)
 
-        bbox_text = ""
-        for value in np.unique(mask_image):
-            if value == 0:
-                continue
+        yolo_text = get_yolo_items(mask_image)
 
-            mask = mask_image == value
-            mask = np.array(mask).astype(np.uint8) * 255
-
-            mask_edges = detect_mask_edges(mask)
-            mask_edges = Image.fromarray(mask_edges)
-
-            x, y = np.where(mask_edges)
-            x = x.astype(str)
-            y = y.astype(str)
-
-            bbox_text += "0 " + \
-                " ".join([" ".join(pair) for pair in zip(x, y)]) + "\n"
-
-        bbox_file = img_name.replace(".jpg", ".txt")
-        with open(f"data/gold/bbox/{bbox_file}", "w+") as f:
-            f.write(bbox_text)
+        yolo_file = img_name.replace(".jpg", ".txt")
+        with open(f"data/gold/segmentations/{yolo_file}", "w+") as f:
+            f.write(yolo_text)
