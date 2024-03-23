@@ -16,6 +16,8 @@ def detect_mask_edges(mask):
 
 def convert_to_yolo_item(mask_edges):
     x, y = np.where(mask_edges)
+    x = x / mask_edges.shape[0]
+    y = y / mask_edges.shape[1]
     xy = (np
           .stack([x, y], axis=1)
           .astype(str)
