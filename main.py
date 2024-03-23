@@ -14,6 +14,8 @@ from src.segmentation import label_image as separate_mask_image, load_image
 
 if __name__ == "__main__":
     IMAGE_SIZE = (256, 256)
+    RANDOM_SEED = 42
+    np.random.seed(RANDOM_SEED)
 
     tiles_dir = "data/bronze/tiles"
     masks_dir = "data/bronze/masks"
@@ -55,7 +57,7 @@ if __name__ == "__main__":
         mask_image = separated_mask_images[idx]
 
         zoom_factors = [1, .25, .5, .75]
-        rotate_angles = [0, 90, 180, 270]
+        rotate_angles = np.random.randint(0, 360, 4)
         flip_horizontal = [False, True]
         flip_vertical = [False, True]
 
@@ -77,7 +79,7 @@ if __name__ == "__main__":
                 flip_vertical=flip_vertical
             )
 
-            image_name = f"{idx}__{zoom}_{rotation}_{flip_horizontal}_{flip_vertical}.jpg"
+            image_name = f"{idx}__{zoom:3}_{rotation:3}_{flip_horizontal:5}_{flip_vertical:5}.jpg"
 
             tile_image_augmented.save(f"data/gold/tiles/{image_name}")
             mask_image_augmented.save(f"data/gold/masks/{image_name}")
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     os.makedirs("data/gold/valid", exist_ok=True)
 
     train, valid = train_test_split(
-        os.listdir("data/gold/tiles"), test_size=.2)
+        os.listdir("data/gold/tiles"), test_size=.2, random_state=RANDOM_SEED)
 
     for img_name in tqdm(train, desc="Train images"):
         filename = img_name.replace(".jpg", "")
