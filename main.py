@@ -119,9 +119,9 @@ if __name__ == "__main__":
     with open("data/gold/config.yaml", "w+") as f:
         contents = (
             f"""
-path: data/gold
-train:/train
-val:/valid
+path: {os.getcwd()}/data/gold
+train: /train
+val: /valid
 
 names:
   0: tree
