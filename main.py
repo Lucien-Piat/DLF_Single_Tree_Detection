@@ -4,6 +4,8 @@ from tqdm import tqdm
 from PIL import Image
 from itertools import product
 
+from sklearn.model_selection import train_test_split
+
 from src.edge_detection import get_yolo_items
 from src.augmentation import augment_image
 from src.utils import parse_number_string
@@ -91,3 +93,44 @@ if __name__ == "__main__":
         yolo_file = img_name.replace(".jpg", ".txt")
         with open(f"data/gold/segmentations/{yolo_file}", "w+") as f:
             f.write(yolo_text)
+
+    print("\nReorganizing dataset...")
+    os.makedirs("data/gold/train", exist_ok=True)
+    os.makedirs("data/gold/valid", exist_ok=True)
+
+    train, valid = train_test_split(
+        os.listdir("data/gold/tiles"), test_size=.2)
+
+    for img_name in tqdm(train, desc="Train images"):
+        filename = img_name.replace(".jpg", "")
+        os.rename(f"data/gold/tiles/{filename}.jpg",
+                  f"data/gold/train/{filename}.jpg")
+        os.rename(f"data/gold/segmentations/{filename}.txt",
+                  f"data/gold/train/{filename}.txt")
+
+    for img_name in tqdm(valid, desc="Valid images"):
+        filename = img_name.replace(".jpg", "")
+        os.rename(f"data/gold/tiles/{filename}.jpg",
+                  f"data/gold/valid/{filename}.jpg")
+        os.rename(f"data/gold/segmentations/{filename}.txt",
+                  f"data/gold/valid/{filename}.txt")
+
+    print("\nMaking config.yaml for dataset...")
+    with open("data/gold/config.yaml", "w+") as f:
+        contents = (
+            f"""
+path: data/gold
+train:/train
+val:/valid
+
+names:
+  0: tree
+"""[1:-1])
+        f.write(contents)
+
+    print("\nDeleting temporary files...")
+    os.rmdir("data/gold/tiles")
+    os.rmdir("data/gold/segmentations")
+    for mask in os.listdir("data/gold/masks"):
+        os.remove(f"data/gold/masks/{mask}")
+    os.rmdir("data/gold/masks")
