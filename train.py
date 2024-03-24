@@ -1,4 +1,5 @@
 from ultralytics import YOLO
+from setup import IMAGE_SIZE
 
 
 if __name__ == "__main__":
@@ -7,7 +8,4 @@ if __name__ == "__main__":
 
     # Train the model
     results = model.train(data='data/gold/config.yaml',
-                          epochs=100, imgsz=256)
-
-    # Save the model
-    model.save('model/yolov8n-seg-trained.pt')
+                          epochs=100, imgsz=IMAGE_SIZE[0])
