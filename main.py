@@ -4,7 +4,9 @@ from tqdm import tqdm
 from PIL import Image
 from itertools import product
 
-from src.edge_detection import detect_mask_edges
+from sklearn.model_selection import train_test_split
+
+from src.edge_detection import get_yolo_items
 from src.augmentation import augment_image
 from src.utils import parse_number_string
 from src.segmentation import label_image as separate_mask_image, load_image
@@ -12,6 +14,8 @@ from src.segmentation import label_image as separate_mask_image, load_image
 
 if __name__ == "__main__":
     IMAGE_SIZE = (256, 256)
+    RANDOM_SEED = 42
+    np.random.seed(RANDOM_SEED)
 
     tiles_dir = "data/bronze/tiles"
     masks_dir = "data/bronze/masks"
@@ -53,7 +57,7 @@ if __name__ == "__main__":
         mask_image = separated_mask_images[idx]
 
         zoom_factors = [1, .25, .5, .75]
-        rotate_angles = [0, 90, 180, 270]
+        rotate_angles = np.random.randint(0, 360, 4)
         flip_horizontal = [False, True]
         flip_vertical = [False, True]
 
@@ -75,35 +79,60 @@ if __name__ == "__main__":
                 flip_vertical=flip_vertical
             )
 
-            image_name = f"{idx}__{zoom}_{rotation}_{flip_horizontal}_{flip_vertical}.jpg"
+            image_name = f"{idx}__{zoom:3}_{rotation:3}_{flip_horizontal:5}_{flip_vertical:5}.jpg"
 
             tile_image_augmented.save(f"data/gold/tiles/{image_name}")
             mask_image_augmented.save(f"data/gold/masks/{image_name}")
 
-    print("Making bounding boxes...")
-    os.makedirs("data/gold/bbox", exist_ok=True)
+    print("\nMaking bounding boxes...")
+    os.makedirs("data/gold/segmentations", exist_ok=True)
 
     for img_name in tqdm(os.listdir("data/gold/masks"), desc="Bounding boxes"):
         mask_image = load_image("data/gold/masks", img_name)
 
-        bbox_text = ""
-        for value in np.unique(mask_image):
-            if value == 0:
-                continue
+        yolo_text = get_yolo_items(mask_image)
 
-            mask = mask_image == value
-            mask = np.array(mask).astype(np.uint8) * 255
+        yolo_file = img_name.replace(".jpg", ".txt")
+        with open(f"data/gold/segmentations/{yolo_file}", "w+") as f:
+            f.write(yolo_text)
 
-            mask_edges = detect_mask_edges(mask)
-            mask_edges = Image.fromarray(mask_edges)
+    print("\nReorganizing dataset...")
+    os.makedirs("data/gold/train", exist_ok=True)
+    os.makedirs("data/gold/valid", exist_ok=True)
 
-            x, y = np.where(mask_edges)
-            x = x.astype(str)
-            y = y.astype(str)
+    train, valid = train_test_split(
+        os.listdir("data/gold/tiles"), test_size=.2, random_state=RANDOM_SEED)
 
-            bbox_text += "0 " + \
-                " ".join([" ".join(pair) for pair in zip(x, y)]) + "\n"
+    for img_name in tqdm(train, desc="Train images"):
+        filename = img_name.replace(".jpg", "")
+        os.rename(f"data/gold/tiles/{filename}.jpg",
+                  f"data/gold/train/{filename}.jpg")
+        os.rename(f"data/gold/segmentations/{filename}.txt",
+                  f"data/gold/train/{filename}.txt")
 
-        bbox_file = img_name.replace(".jpg", ".txt")
-        with open(f"data/gold/bbox/{bbox_file}", "w+") as f:
-            f.write(bbox_text)
+    for img_name in tqdm(valid, desc="Valid images"):
+        filename = img_name.replace(".jpg", "")
+        os.rename(f"data/gold/tiles/{filename}.jpg",
+                  f"data/gold/valid/{filename}.jpg")
+        os.rename(f"data/gold/segmentations/{filename}.txt",
+                  f"data/gold/valid/{filename}.txt")
+
+    print("\nMaking config.yaml for dataset...")
+    with open("data/gold/config.yaml", "w+") as f:
+        contents = (
+            f"""
+path: {os.getcwd()}/data/gold
+train: ./train
+val: ./valid
+
+names:
+  0: tree
+"""[1:-1])
+        f.write(contents)
+
+    print("\nDeleting temporary files...")
+    os.rmdir("data/gold/tiles")
+    os.rmdir("data/gold/segmentations")
+    for mask in os.listdir("data/gold/masks"):
+        os.remove(f"data/gold/masks/{mask}")
+    os.rmdir("data/gold/masks")
