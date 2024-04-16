@@ -18,7 +18,7 @@ def load_image(input_folder, image_path):
         return None
 
 
-def plot_data(image1, image2):
+def plot_data(image1, image2,  output_file=None):
     '''
     Plot tow images side by side
     '''
@@ -30,13 +30,17 @@ def plot_data(image1, image2):
     axes[1].imshow(image2)
     axes[1].set_title('Modified', fontsize=10)
     axes[1].axis('off')
-    plt.show()
+    if output_file:
+        plt.savefig(output_file, bbox_inches='tight', dpi=1000)
+    else:
+        plt.show()
+
 
 # I applied this script on full size images, if you use it on scaled down ones,
 # You might want to decrease the erosion_factor or small objects will disappear
 
 
-def label_image(binary_image, erosion_factor=10):
+def label_image(binary_image, erosion_factor=5):
 
     # Refine the segmentation by applying erosion and opening operations
     for i in range(erosion_factor):
@@ -60,4 +64,6 @@ def label_image(binary_image, erosion_factor=10):
 if __name__ == "__main__":
     image1 = load_image('data/bronze/masks/', 'mask_1.tif')
     image2 = label_image(image1)
-    plot_data(image1, image2)
+    plot_data(image1, image2, output_file="assets\\computations\\segmentation_example_01")
+    
+
