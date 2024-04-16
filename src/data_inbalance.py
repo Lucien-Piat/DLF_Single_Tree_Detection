@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from skimage import io
 import numpy as np
 import os
+from segmentation import load_image
 
 '''
 Script used compute and plot the data imbalance
@@ -19,17 +20,6 @@ def get_image_paths(directory):
     except FileNotFoundError:
         print("Directory not found.")
         return []
-
-def load_image(input_folder, image_path):
-    '''
-    Load image from path.
-    '''
-    try:
-        image = io.imread(os.path.join(input_folder, image_path))
-        return np.array(image)
-    except FileNotFoundError:
-        print("Image not found")
-        return None
     
 def count_pixel(image): 
     ones = np.sum(image)
@@ -50,14 +40,13 @@ def plot_percentage(total_ones, total_zeros, output_file=None):
     plt.bar(np.array(["Tree", "Not tree "]),np.array([total_ones, total_zeros]))
     plt.ylabel("Pixel (n)")
     if output_file:
-        plt.savefig(output_file)
+        plt.savefig(output_file, dpi=1000)
     else:
         plt.show()
 
 if __name__ == "__main__":
     total_ones, total_zeros = count_all("data\\bronze\\masks")
-    plot_percentage(total_ones, total_zeros)
-    # plot_percentage(total_ones, total_zeros, output_file="assets\\computations\\class_imbalance")
+    plot_percentage(total_ones, total_zeros, output_file="assets\\computations\\class_imbalance")
     
 
 
