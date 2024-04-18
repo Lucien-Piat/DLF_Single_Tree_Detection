@@ -73,6 +73,3 @@ def generate_all_angles(image, image_name, flip_image=False):
         images_list.append(np.fliplr(images_list[i]))
         names_list.append(names_list[i].split('.')[0] + '_f.tif')
     return images_list, names_list
-
-
-
