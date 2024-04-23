@@ -48,14 +48,18 @@ def augment(image, mask):
 
 def resize_and_normalize(image, mask):
     # Resize images to 256x256
-    image = tf.image.resize(image, [256, 256])
+    image = tf.image.resize(
+        image, [128, 128]
+    )
     mask = tf.image.resize(
-        mask, [256, 256], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        mask, [128, 128],
+        method=tf.image.ResizeMethod.NEAREST_NEIGHBOR
+    )
 
     # Normalize images
     image = tf.cast(image, tf.float32) / 255.0
     mask = tf.cast(mask, tf.float32) / 255.0
-    return image, mask
+    return image, mask[:, :, 0]
 
 
 def prepare_dataset(ds, batch_size=32):
@@ -65,7 +69,7 @@ def prepare_dataset(ds, batch_size=32):
     ds = ds.map(augment, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     ds = ds.map(resize_and_normalize,
                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds = ds.batch(batch_size)
+    ds = ds.batch(batch_size, drop_remainder=True)
     ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return ds
 
@@ -98,6 +102,6 @@ if __name__ == "__main__":
             plt.imshow(images[i])
             plt.axis('off')
             plt.subplot(2, 4, i+5)
-            plt.imshow(masks[i, ..., 0], cmap='gray')
+            plt.imshow(masks[i], cmap='gray')
             plt.axis('off')
         plt.show()

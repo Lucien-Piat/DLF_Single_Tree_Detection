@@ -32,10 +32,11 @@ if __name__ == "__main__":
         idx = parse_number_string(mask_path)
         image_path = f"data/silver/masks/{idx}.png"
 
-        if os.path.exists(image_path):
-            continue
+        # if os.path.exists(image_path):
+        #     continue
 
-        mask_image_separated = separate_mask_image(mask_image).astype(np.uint8)
+        # separate_mask_image(mask_image).astype(np.uint8)
+        mask_image_separated = mask_image
         mask_image_separated = Image.fromarray(mask_image_separated)
 
         mask_image_separated.save(image_path)
