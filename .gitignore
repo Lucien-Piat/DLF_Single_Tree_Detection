@@ -3,3 +3,4 @@ data/silver/
 data/gold/
 temp/
 runs/
+*.pyc
