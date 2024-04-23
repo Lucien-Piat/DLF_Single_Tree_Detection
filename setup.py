@@ -48,6 +48,16 @@ if __name__ == "__main__":
         separated_mask_images.append(mask_image_separated)
         mask_image_separated.save(image_path)
 
+    print("\nSaving tiles as [InfRed, Green, Blue]...")
+    os.makedirs("data/silver/tiles", exist_ok=True)
+    for tile_path, tile_image in tqdm(list(zip(tile_paths, tile_image_arrays))):
+        tile_image = Image.fromarray(tile_image[:, :, [3, 1, 2]])
+        idx = parse_number_string(tile_path)
+        image_path = f"data/silver/tiles/{idx}.png"
+        tile_image.save(image_path)
+
+    quit()
+
     print("\nMaking sub-tiles...")
     os.makedirs("data/gold/tiles", exist_ok=True)
     os.makedirs("data/gold/masks", exist_ok=True)
@@ -79,7 +89,8 @@ if __name__ == "__main__":
                 flip_vertical=flip_vertical
             )
 
-            image_name = f"{idx}__{zoom:3}_{rotation:3}_{flip_horizontal:5}_{flip_vertical:5}.jpg"
+            image_name = f"{idx}__{zoom:3}_{rotation:3}_{
+                flip_horizontal:5}_{flip_vertical:5}.jpg"
 
             tile_image_augmented.save(f"data/gold/tiles/{image_name}")
             mask_image_augmented.save(f"data/gold/masks/{image_name}")
