@@ -13,8 +13,6 @@ def parse_image(file_path):
 def process_path(file_path):
     # Create file paths for the mask by replacing 'tiles' with 'masks' in the file path
     mask_path = tf.strings.regex_replace(file_path, 'tiles', 'masks')
-    # Adjust file extension if necessary
-    mask_path = tf.strings.regex_replace(mask_path, '.jpg', '_mask.png')
 
     # Load the image and the mask
     image = parse_image(file_path)
@@ -24,8 +22,6 @@ def process_path(file_path):
 
 
 def augment(image, mask):
-    # Data augmentation: rotation and random cropping
-
     # Random rotation
     # Randomly choose a multiple of 90 degrees for rotation to avoid interpolation artifacts
     k = tf.random.uniform(shape=[], minval=0, maxval=4, dtype=tf.int32)
@@ -62,7 +58,7 @@ def resize_and_normalize(image, mask):
     return image, mask
 
 
-def prepare_for_training(ds, batch_size=32):
+def prepare_dataset(ds, batch_size=32):
     # Shuffle, repeat, and batch the dataset
     ds = ds.shuffle(1000)
     ds = ds.repeat()
@@ -72,3 +68,36 @@ def prepare_for_training(ds, batch_size=32):
     ds = ds.batch(batch_size)
     ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return ds
+
+
+def make_dataset(base_dir, batch_size=32):
+    # List dataset files
+    list_ds = tf.data.Dataset.list_files(
+        os.path.join(base_dir, 'tiles', '*.png'), shuffle=False)
+    # Map the files to images and masks
+    list_ds = list_ds.map(
+        process_path, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+    return prepare_dataset(list_ds, batch_size=batch_size)
+
+
+if __name__ == "__main__":
+    # Define the base directory
+    base_dir = 'data/gold/train'
+
+    # Create the dataset
+    train_dataset = make_dataset(base_dir, batch_size=32)
+
+    # Visualize the dataset
+    import matplotlib.pyplot as plt
+
+    for images, masks in train_dataset.take(1):
+        plt.figure(figsize=(10, 5))
+        for i in range(4):
+            plt.subplot(2, 4, i+1)
+            plt.imshow(images[i])
+            plt.axis('off')
+            plt.subplot(2, 4, i+5)
+            plt.imshow(masks[i, ..., 0], cmap='gray')
+            plt.axis('off')
+        plt.show()
