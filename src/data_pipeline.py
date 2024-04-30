@@ -58,7 +58,7 @@ def resize_and_normalize(image, mask):
 
     # Normalize images
     image = tf.cast(image, tf.float32) / 255.0
-    mask = tf.cast(mask, tf.float32) / 255.0
+    mask = tf.cast(mask, tf.float32)
     return image, mask[:, :, 0]
 
 
@@ -100,8 +100,20 @@ if __name__ == "__main__":
         for i in range(4):
             plt.subplot(2, 4, i+1)
             plt.imshow(images[i])
+            plt.text(0.5, -0.1, 'Max: {:.4f}'.format(tf.reduce_max(images[i])),
+                     size=12, ha="center",
+                     transform=plt.gca().transAxes)
+            plt.text(0.5, -0.2, 'Min: {:.4f}'.format(tf.reduce_min(images[i])),
+                     size=12, ha="center",
+                     transform=plt.gca().transAxes)
             plt.axis('off')
             plt.subplot(2, 4, i+5)
             plt.imshow(masks[i], cmap='gray')
+            plt.text(0.5, -0.1, 'Max: {:.4f}'.format(tf.reduce_max(masks[i])),
+                     size=12, ha="center",
+                     transform=plt.gca().transAxes)
+            plt.text(0.5, -0.2, 'Min: {:.4f}'.format(tf.reduce_min(masks[i])),
+                     size=12, ha="center",
+                     transform=plt.gca().transAxes)
             plt.axis('off')
         plt.show()
